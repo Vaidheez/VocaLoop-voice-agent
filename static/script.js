@@ -1,3 +1,4 @@
+// --- All Variables are declared here to prevent ReferenceErrors ---
 const recordButton = document.getElementById('record-button');
 const echoAudioPlayer = document.getElementById('echo-audio-player');
 const echoStatusMessage = document.getElementById('echo-status-message');
@@ -12,16 +13,25 @@ let audioChunks = [];
 let sessionId;
 let isRecording = false;
 
-// Function to generate a new session ID
-function generateSessionId() {
-    return uuidv4();
-}
-
 // Function to get a UUID (v4)
 function uuidv4() {
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
       (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
     );
+}
+
+// Function to get or create a session ID on page load
+function getOrCreateSessionId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('session_id')) {
+        sessionId = urlParams.get('session_id');
+    } else {
+        sessionId = uuidv4();
+        const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?session_id=${sessionId}`;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+    sessionIdDisplay.textContent = `Session ID: ${sessionId}`;
+    console.log(`Current session ID: ${sessionId}`);
 }
 
 // Function to create a new message element in the chat history
@@ -45,24 +55,8 @@ function addMessageToChatHistory(sender, text) {
     messageContainer.appendChild(senderElement);
     messageContainer.appendChild(textElement);
     chatHistoryContainer.appendChild(messageContainer);
-    chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight; // Auto-scroll to the bottom
+    chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight; // Auto-scroll
 }
-
-// Get or create a session ID on page load
-window.addEventListener('load', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('session_id')) {
-        sessionId = urlParams.get('session_id');
-        sessionIdDisplay.textContent = `Session ID: ${sessionId}`;
-        console.log(`Continuing session with ID: ${sessionId}`);
-    } else {
-        sessionId = generateSessionId();
-        const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?session_id=${sessionId}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-        sessionIdDisplay.textContent = `Session ID: ${sessionId}`;
-        console.log(`Created new session with ID: ${sessionId}`);
-    }
-});
 
 // --- Recording & Conversational Logic ---
 async function startRecording() {
@@ -90,7 +84,7 @@ async function startRecording() {
 
             try {
                 const selectedVoiceId = echoVoiceSelector.value;
-                const response = await fetch(`http://localhost:8000/agent/chat/${sessionId}?voice_id=${selectedVoiceId}`, {
+                const response = await fetch(`http://127.0.0.1:8000/agent/chat/${sessionId}?voice_id=${selectedVoiceId}`, {
                     method: 'POST',
                     body: formData
                 });
@@ -104,7 +98,6 @@ async function startRecording() {
                         echoAudioPlayer.src = data.murf_audio_url;
                         echoAudioPlayer.play();
                     } else {
-                        // Throw an error to be caught by the catch block below
                         throw new Error(data.detail || 'An unknown error occurred.');
                     }
                 } else {
@@ -128,7 +121,7 @@ async function startRecording() {
                 console.error('Error during processing:', error);
                 echoStatusMessage.innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
                 echoStatusMessage.classList.add('error');
-                recordButton.textContent = "TALK"; // Reset button text
+                recordButton.textContent = "TALK";
             }
         };
 
@@ -173,7 +166,7 @@ historyToggleButton.addEventListener('click', async () => {
 
     if (isVisible) {
         try {
-            const response = await fetch(`http://localhost:8000/history/${sessionId}`);
+            const response = await fetch(`http://127.0.0.1:8000/history/${sessionId}`);
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail);
@@ -190,3 +183,6 @@ historyToggleButton.addEventListener('click', async () => {
         }
     }
 });
+
+// Run this on page load to set up the session ID
+window.addEventListener('load', getOrCreateSessionId);

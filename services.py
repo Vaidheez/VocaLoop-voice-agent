@@ -51,14 +51,12 @@ async def save_chat_history(session_id: str, user_text: str, llm_response: str):
     chat_history = load_chat_history(session_id)
     chat_history.append({"role": "user", "parts": [user_text]})
     chat_history.append({"role": "model", "parts": [llm_response]})
-    # Run the blocking operation in a background thread
     await run_in_threadpool(_save_chat_history, session_id, chat_history)
 
 def _get_transcription_sync(file_path: str) -> str:
     """Synchronous helper for AssemblyAI transcription."""
     transcriber = aai.Transcriber()
     transcript = transcriber.transcribe(file_path)
-    # The correct way to check the status in the latest SDK
     if transcript.status == aai.TranscriptStatus.completed:
         return transcript.text or ""
     logger.error(f"AssemblyAI transcription failed with status: {transcript.status}")
@@ -71,7 +69,6 @@ async def get_assemblyai_transcription(file: UploadFile) -> str:
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # Run the blocking transcription function in a thread
         transcription = await run_in_threadpool(_get_transcription_sync, temp_path)
         return transcription
     except Exception as e:
@@ -94,12 +91,10 @@ async def get_gemini_response(transcription: str, chat_history: List[Dict[str, A
 async def get_murf_audio_url(text: str, voice_id: str) -> Optional[str]:
     """Generates an audio file from Murf AI and returns its URL."""
     try:
-        # The correct method name is 'generate_audio'
-        # response = murf.generate_audio(text, voice_id=voice_id)
         response = murf.text_to_speech.generate(
-                    text=text,
-                    voice_id=voice_id,
-                )
+            text=text,
+            voice_id=voice_id,
+        )
         return response.audio_file
     except Exception as e:
         logger.error(f"Error generating audio with Murf AI: {e}", exc_info=True)

@@ -1,15 +1,16 @@
+import os
+import uuid
 import logging
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Request, File, UploadFile
+from fastapi import FastAPI, HTTPException, Request, File, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 import uvicorn
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
-# Import all service functions from the services.py file
+# Import all service functions from services.py
 from services import (
     get_assemblyai_transcription,
     get_gemini_response,
@@ -42,15 +43,20 @@ app.add_middleware(
 # Mount the static directory to serve CSS and JS files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# WebSocket Endpoint for streaming audio
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    file_path = os.path.join("uploads", f"{uuid.uuid4()}.webm")
     try:
-        while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"Message text was: {data}")
+        with open(file_path, "wb") as audio_file:
+            while True:
+                data = await websocket.receive_bytes()
+                audio_file.write(data)
     except WebSocketDisconnect:
-        print("Client disconnected")
+        logger.info(f"Client disconnected. Audio saved to: {file_path}")
+    except Exception as e:
+        logger.error(f"An error occurred in the websocket connection: {e}", exc_info=True)
 
 # Define Pydantic models for data validation
 class ChatResponse(BaseModel):
