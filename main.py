@@ -5,8 +5,10 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 import uvicorn
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
-# Local imports
+# Import all service functions from the services.py file
 from services import (
     get_assemblyai_transcription,
     get_gemini_response,
@@ -19,55 +21,58 @@ from services import (
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app and templates
+# Initialize FastAPI app and Jinja2 templates for rendering HTML
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# Pydantic models for request and response
-class ChatRequest(BaseModel):
-    text: str = Field(..., description="The user's spoken transcription.")
-    voice_id: str = Field(..., description="The Murf AI voice ID for the response.")
+# Add the CORS Middleware to allow cross-origin requests
+origins = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# Mount the static directory to serve CSS and JS files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Define Pydantic models for data validation
 class ChatResponse(BaseModel):
     transcription: str = Field(..., description="The transcribed text from the user.")
     llm_response: str = Field(..., description="The text response from the LLM.")
     murf_audio_url: Optional[str] = Field(None, description="The URL of the generated Murf AI audio file.")
 
-# Route to serve the main HTML page
+# Main route to serve the HTML frontend
 @app.get("/", response_class=HTMLResponse)
 async def serve_root(request: Request):
     """Serve the main VocaLoop UI."""
     return templates.TemplateResponse("index.html", {"request": request})
 
-# Agent chat endpoint
+# Endpoint to handle the full conversational agent loop
 @app.post("/agent/chat/{session_id}")
 async def agent_chat_endpoint(session_id: str, voice_id: str, file: UploadFile = File(...)):
     """
     Handles the conversational agent interaction.
-    - Transcribes the audio using AssemblyAI.
-    - Gets an LLM response from Google Gemini with context.
-    - Generates and returns audio from Murf AI.
     """
     logger.info(f"Received request for session_id: {session_id}")
     try:
-        # Load chat history for context
         chat_history = load_chat_history(session_id)
-
-        # Transcribe audio using AssemblyAI
         transcription = await get_assemblyai_transcription(file)
         logger.info(f"Transcription from user: {transcription}")
 
         if not transcription:
-            raise HTTPException(status_code=400, detail="Could not transcribe audio.")
+            raise HTTPException(status_code=400, detail="Could not transcribe audio. Please speak clearly.")
 
-        # Get LLM response from Gemini
         llm_response = await get_gemini_response(transcription, chat_history)
         logger.info(f"LLM response: {llm_response}")
 
-        # Save the new chat history
-        save_chat_history(session_id, transcription, llm_response)
+        await save_chat_history(session_id, transcription, llm_response)
 
-        # Generate audio from Murf AI
         murf_audio_url = await get_murf_audio_url(llm_response, voice_id)
         logger.info(f"Murf audio URL: {murf_audio_url}")
 
@@ -91,9 +96,7 @@ async def agent_chat_endpoint(session_id: str, voice_id: str, file: UploadFile =
 # Endpoint to retrieve chat history
 @app.get("/history/{session_id}")
 async def get_chat_history_endpoint(session_id: str):
-    """
-    Retrieves the chat history for a given session.
-    """
+    """Retrieves the chat history for a given session."""
     try:
         chat_history = load_chat_history(session_id)
         return JSONResponse(content={"history": chat_history})
@@ -103,5 +106,6 @@ async def get_chat_history_endpoint(session_id: str):
         logger.error(f"Error retrieving history for session {session_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error.")
 
+# Command to run the application using Uvicorn
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

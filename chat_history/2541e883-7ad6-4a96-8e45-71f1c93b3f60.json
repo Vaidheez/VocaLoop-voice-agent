@@ -1,0 +1,14 @@
+[
+    {
+        "role": "user",
+        "parts": [
+            "What is your name?"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "I'm having trouble connecting right now. Please try again in a moment."
+        ]
+    }
+]

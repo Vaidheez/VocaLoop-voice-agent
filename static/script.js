@@ -20,7 +20,7 @@ function generateSessionId() {
 // Function to get a UUID (v4)
 function uuidv4() {
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-      (c ^ crypto.getRandomValues(new Uint8array(1))[0] & 15 >> c / 4).toString(16)
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
     );
 }
 
@@ -104,6 +104,7 @@ async function startRecording() {
                         echoAudioPlayer.src = data.murf_audio_url;
                         echoAudioPlayer.play();
                     } else {
+                        // Throw an error to be caught by the catch block below
                         throw new Error(data.detail || 'An unknown error occurred.');
                     }
                 } else {

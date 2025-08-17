@@ -1,0 +1,86 @@
+[
+    {
+        "role": "user",
+        "parts": [
+            "What is your name?"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "I'm having trouble connecting right now. Please try again in a moment."
+        ]
+    },
+    {
+        "role": "user",
+        "parts": [
+            "What is your name?"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "I'm having trouble connecting right now. Please try again in a moment."
+        ]
+    },
+    {
+        "role": "user",
+        "parts": [
+            "What is your name?"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "I'm having trouble connecting right now. Please try again in a moment."
+        ]
+    },
+    {
+        "role": "user",
+        "parts": [
+            "What is your name?"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "I don't have a name.\n"
+        ]
+    },
+    {
+        "role": "user",
+        "parts": [
+            "What is your name?"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "I don't have a name.  I am a large language model.\n"
+        ]
+    },
+    {
+        "role": "user",
+        "parts": [
+            "What is your name?"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "I don't have a name.\n"
+        ]
+    },
+    {
+        "role": "user",
+        "parts": [
+            "What is your name?"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "I don't have a name.\n"
+        ]
+    }
+]
