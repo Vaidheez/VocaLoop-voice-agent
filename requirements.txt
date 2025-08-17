@@ -6,3 +6,4 @@ pydantic
 jinja2
 assemblyai
 google-generativeai
+websockets

@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 import uvicorn
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 # Import all service functions from the services.py file
 from services import (
@@ -40,6 +41,16 @@ app.add_middleware(
 
 # Mount the static directory to serve CSS and JS files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Message text was: {data}")
+    except WebSocketDisconnect:
+        print("Client disconnected")
 
 # Define Pydantic models for data validation
 class ChatResponse(BaseModel):
